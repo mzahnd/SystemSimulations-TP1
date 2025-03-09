@@ -1,8 +1,7 @@
 package ar.edu.itba.ss
 
-import com.sun.source.tree.Tree
 import io.github.oshai.kotlinlogging.KotlinLogging
-import java.util.TreeSet
+import java.util.*
 import kotlin.math.floor
 
 private val logger = KotlinLogging.logger {}
@@ -46,15 +45,11 @@ fun cellIndexMethod(settings: Settings) {
         cell.content.forEach { particle ->
             adjacentCells.forEach { aCell ->
                 for (maybeNeighbour in aCell.content) {
-                    if (particle.id == maybeNeighbour.id || particle.neighbours.contains(maybeNeighbour)) {
+                    if (particle == maybeNeighbour || particle.neighbours.contains(maybeNeighbour)) {
                         continue
                     }
 
-                    val distance = particle.distance(maybeNeighbour, settings)
-                    if (distance <= settings.rc) {
-                        particle.neighbours.add(maybeNeighbour)
-                        maybeNeighbour.neighbours.add(particle)
-                    }
+                    mutuallyAddNeighbours(particle, maybeNeighbour, settings)
                 }
             }
         }
@@ -63,5 +58,22 @@ fun cellIndexMethod(settings: Settings) {
 
 fun bruteForce(settings: Settings) {
     logger.debug { "Processing Brute Force" }
+
+    for (particle1 in settings.particles) {
+        for (particle2 in settings.particles) {
+            if (particle1 == particle2 || particle1.neighbours.contains(particle2)) {
+                continue
+            }
+
+            mutuallyAddNeighbours(particle1, particle2, settings)
+        }
+    }
 }
 
+private fun mutuallyAddNeighbours(particle: Particle, maybeNeighbour: Particle, settings: Settings) {
+    val distance = particle.distance(maybeNeighbour, settings)
+    if (distance <= settings.rc) {
+        particle.neighbours.add(maybeNeighbour)
+        maybeNeighbour.neighbours.add(particle)
+    }
+}
