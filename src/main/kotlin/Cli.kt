@@ -2,12 +2,12 @@ package ar.edu.itba.ss
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.help
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.File
-import java.nio.file.Files
 import java.nio.file.Path
 
 class Cli : CliktCommand() {
@@ -31,6 +31,8 @@ class Cli : CliktCommand() {
         .help("[Optional] Should use periodic contour. Defaults to false.")
     private val interactionRadius: Double by option().double().default(1.0)
         .help("[Optional] Interaction radius between particles. Defaults to 1.0")
+    private val generateRandom: Boolean by option("--generate-random").flag()
+        .help("Generate random static and dynamic configuration files.")
 
     override fun run() {
         val boardSizeLength: Int
@@ -39,17 +41,26 @@ class Cli : CliktCommand() {
 
         requireNotNull(matrixSize) { IllegalArgumentException("matrix-size must be defined") }
         requireNotNull(outputDirectory) { IllegalArgumentException("output-directory must be defined") }
-        requireNotNull(staticConfigurationFile) { IllegalArgumentException("static-configuration-file can not be null") }
-        requireNotNull(dynamicConfigurationFile) { IllegalArgumentException("dynamic-configuration-file can not be null") }
 
-        val staticParsed = parseStaticConfigurationFile(staticConfigurationFile!!)
-        boardSizeLength = staticParsed.first
-        particles = staticParsed.second
+        val staticFile = staticConfigurationFile ?: File("static_config.txt")
+        val dynamicFile = dynamicConfigurationFile ?: File("dynamic_config.txt")
 
-        val dynamicParsed = parseDynamicConfigurationFile(dynamicConfigurationFile!!, particles)
+        val (boardSize, particlesList) = if (generateRandom) {
+            val generatedStatic = generateRandomStaticConfig(staticFile)
+            generateRandomDynamicConfig(dynamicFile, generatedStatic.first, generatedStatic.second)
+            generatedStatic
+        } else {
+            requireNotNull(staticConfigurationFile) { IllegalArgumentException("static-configuration-file must be defined unless --generate-random is used") }
+            requireNotNull(dynamicConfigurationFile) { IllegalArgumentException("dynamic-configuration-file must be defined unless --generate-random is used") }
+            parseStaticConfigurationFile(staticFile)
+        }
+
+        boardSizeLength = boardSize
+        particles = particlesList
+
+        val dynamicParsed = parseDynamicConfigurationFile(dynamicFile, particles)
         time = dynamicParsed.first
         particles = dynamicParsed.second
-
 
         val settings = Settings(
             algorithm = algorithm,
@@ -70,13 +81,14 @@ class Cli : CliktCommand() {
         }
         val endTime = System.currentTimeMillis()
 
-        val elapsedTime = endTime - startTime;
+        val elapsedTime = endTime - startTime
 
         logger.info { "${settings.algorithm} | ${settings.particles.size} | $elapsedTime ms" }
         logger.debug { settings.particles }
 
         writeOutputFile(outputDirectory!!, settings)
     }
+
 
     private fun parseStaticConfigurationFile(configurationFile: File): Pair<Int, List<Particle>> {
         val nParticles = configurationFile.useLines { it.elementAtOrNull(0)?.trim()?.toInt() ?: 0 }
