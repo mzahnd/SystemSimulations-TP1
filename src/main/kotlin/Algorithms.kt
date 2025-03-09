@@ -46,7 +46,7 @@ fun cellIndexMethod(settings: Settings) {
         cell.content.forEach { particle ->
             adjacentCells.forEach { aCell ->
                 for (maybeNeighbour in aCell.content) {
-                    if (particle.neighbours.contains(maybeNeighbour)) {
+                    if (particle.id == maybeNeighbour.id || particle.neighbours.contains(maybeNeighbour)) {
                         continue
                     }
 
