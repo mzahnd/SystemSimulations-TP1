@@ -7,16 +7,30 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.Path
 
 class Cli : CliktCommand() {
     private val logger = KotlinLogging.logger {}
 
-    private val staticConfigurationFile: File? by option().file().help("Path to the static configuration file.")
-    private val dynamicConfigurationFile: File? by option().file().help("Path to the dynamic configuration file.")
-    private val matrixSize: Int? by option().int().help("Size of one side of the squared matrix used by the Cell Index Method algorithm. Ignored by Brute Force algorithm")
-    private val algorithm: Algorithm by option().enum<Algorithm>().default(Algorithm.CELL_INDEX_METHOD).help("[Optional] Algorithm implementation to run. Defaults to CELL_INDEX_METHOD.")
-    private val periodicContour: Boolean by option().boolean().default(false).help("[Optional] Should use periodic contour. Defaults to false.")
-    private val interactionRadius: Double by option().double().default(1.0).help("[Optional] Interaction radius between particles. Defaults to 1.0")
+    private val staticConfigurationFile: File? by option().file()
+        .help("Path to the static configuration file.")
+    private val dynamicConfigurationFile: File? by option().file()
+        .help("Path to the dynamic configuration file.")
+    private val outputDirectory: Path? by option().path(
+        canBeFile = false,
+        canBeDir = true,
+        mustExist = true,
+        mustBeReadable = true
+    ).help("Path to the output directory.")
+    private val matrixSize: Int? by option().int()
+        .help("Size of one side of the squared matrix used by the Cell Index Method algorithm. Ignored by Brute Force algorithm")
+    private val algorithm: Algorithm by option().enum<Algorithm>().default(Algorithm.CELL_INDEX_METHOD)
+        .help("[Optional] Algorithm implementation to run. Defaults to CELL_INDEX_METHOD.")
+    private val periodicContour: Boolean by option().boolean().default(false)
+        .help("[Optional] Should use periodic contour. Defaults to false.")
+    private val interactionRadius: Double by option().double().default(1.0)
+        .help("[Optional] Interaction radius between particles. Defaults to 1.0")
 
     override fun run() {
         val boardSizeLength: Int
@@ -24,6 +38,7 @@ class Cli : CliktCommand() {
         var particles: List<Particle>
 
         requireNotNull(matrixSize) { IllegalArgumentException("matrix-size must be defined") }
+        requireNotNull(outputDirectory) { IllegalArgumentException("output-directory must be defined") }
         requireNotNull(staticConfigurationFile) { IllegalArgumentException("static-configuration-file can not be null") }
         requireNotNull(dynamicConfigurationFile) { IllegalArgumentException("dynamic-configuration-file can not be null") }
 
@@ -58,7 +73,9 @@ class Cli : CliktCommand() {
         val elapsedTime = endTime - startTime;
 
         logger.info { "${settings.algorithm} | ${settings.particles.size} | $elapsedTime ms" }
-        logger.info { settings.particles }
+        logger.debug { settings.particles }
+
+        writeOutputFile(outputDirectory!!, settings)
     }
 
     private fun parseStaticConfigurationFile(configurationFile: File): Pair<Int, List<Particle>> {
@@ -118,5 +135,15 @@ class Cli : CliktCommand() {
         }
 
         return Pair(time, updatedParticles)
+    }
+
+    private fun writeOutputFile(outputDir: Path, settings: Settings) {
+        val fileName = "${settings.algorithm}-ts=${System.currentTimeMillis()}-particles=${settings.particles.size}-M=${settings.matrixSize}-rc=${settings.rc}-periodic=${settings.periodicContour}-L=${settings.boardSizeLength}.txt"
+        val file = outputDir.resolve(fileName).toFile()
+
+        settings.particles.forEach {particle ->
+            val neighbours = particle.neighbours.joinToString(" ") { "${it.id}" }
+            file.appendText("${particle.id} $neighbours\n")
+        }
     }
 }
