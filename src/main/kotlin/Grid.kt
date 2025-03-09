@@ -33,29 +33,40 @@ class Grid(private val rows: List<Row>) {
     private fun adjacentCellsInRow(cellIndex: Int, row: Row, settings: Settings): List<Cell> =
         if (row.isEmpty()) {
             emptyList()
+        } else if (settings.periodicContour) {
+            listOf(
+                if (cellIndex - 1 < 0) row.last() else row[cellIndex - 1],
+                row[cellIndex],
+                if (cellIndex + 1 > settings.matrixSize - 1) row.first() else row[cellIndex + 1],
+            )
         } else {
-            if (settings.periodicContour) {
-                listOf(
-                    if (cellIndex - 1 < 0) row.last() else row[cellIndex - 1],
-                    if (cellIndex + 1 > settings.matrixSize - 1) row.first() else row[cellIndex + 1],
-                    row[cellIndex]
-                )
-            } else {
-                mutableListOf<Cell>().apply {
-                    if (cellIndex - 1 >= 0) add(row[cellIndex - 1])
-                    if (cellIndex + 1 <= settings.matrixSize - 1) add(row[cellIndex + 1])
-                    row[cellIndex]
-                }
+            mutableListOf<Cell>().apply {
+                if (cellIndex - 1 >= 0) add(row[cellIndex - 1])
+                add(row[cellIndex])
+                if (cellIndex + 1 <= settings.matrixSize - 1) add(row[cellIndex + 1])
             }
         }
 
     fun getAdjacentCells(cell: Cell, settings: Settings): List<Cell> {
         return getRowIndexByCellIndex(cell.index)?.let { rowIndex ->
-            val previousRow =
-                if (settings.periodicContour && rowIndex - 1 < 0) rows.last() else if (rowIndex - 1 >= 0) rows[rowIndex - 1] else emptyList()
             val thisRow = rows[rowIndex]
+            val previousRow =
+                if (settings.periodicContour && rowIndex - 1 < 0) {
+                    rows.last()
+                } else if (rowIndex - 1 >= 0) {
+                    rows[rowIndex - 1]
+                } else {
+                    emptyList()
+                }
             val nextRow =
-                if (settings.periodicContour && rowIndex + 1 > settings.matrixSize - 1) rows.first() else if (rowIndex + 1 <= settings.matrixSize - 1) rows[rowIndex + 1] else emptyList()
+                if (settings.periodicContour && rowIndex + 1 > settings.matrixSize - 1) {
+                    rows.first()
+                } else if (rowIndex + 1 <= settings.matrixSize - 1) {
+                    rows[rowIndex + 1]
+                } else {
+                    emptyList()
+                }
+
 
             adjacentCellsInRow(cell.index % settings.matrixSize, previousRow, settings) +
                     adjacentCellsInRow(cell.index % settings.matrixSize, thisRow, settings) +
