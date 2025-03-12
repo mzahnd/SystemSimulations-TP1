@@ -8,7 +8,9 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.File
+import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.exists
 
 class Cli : CliktCommand() {
     private val logger = KotlinLogging.logger {}
@@ -25,6 +27,12 @@ class Cli : CliktCommand() {
     ).help("Path to the output directory.")
     private val matrixSize: Int? by option().int()
         .help("Size of one side of the squared matrix used by the Cell Index Method algorithm. Ignored by Brute Force algorithm")
+    private val numberOfParticles: Int? by option().int()
+        .help("Total number of particles.")
+    private val boardSideLength: Int? by option().int().default(20)
+        .help("Square side length.")
+    private val particleRadius: Double? by option().double().default(0.25)
+        .help("Radius of particles.")
     private val algorithm: Algorithm by option().enum<Algorithm>().default(Algorithm.CELL_INDEX_METHOD)
         .help("[Optional] Algorithm implementation to run. Defaults to CELL_INDEX_METHOD.")
     private val periodicContour: Boolean by option().boolean().default(false)
@@ -35,7 +43,10 @@ class Cli : CliktCommand() {
         .help("Generate random static and dynamic configuration files.")
 
     override fun run() {
-        val boardSizeLength: Int
+        var boardSideLength: Int? = boardSideLength
+        val numberOfParticles: Int? = numberOfParticles
+        val interactionRadius: Double = interactionRadius
+        val particleRadius: Double? = particleRadius
         val time: Double
         var particles: List<Particle>
 
@@ -46,7 +57,13 @@ class Cli : CliktCommand() {
         val dynamicFile = dynamicConfigurationFile ?: File("dynamic_config.txt")
 
         val (boardSize, particlesList) = if (generateRandom) {
-            val generatedStatic = generateRandomStaticConfig(staticFile)
+            val generatedStatic = generateRandomStaticConfig(
+                staticFile,
+                numberOfParticles,
+                boardSideLength,
+                particleRadius,
+                interactionRadius
+            )
             generateRandomDynamicConfig(dynamicFile, generatedStatic.first, generatedStatic.second)
             generatedStatic
         } else {
@@ -55,7 +72,7 @@ class Cli : CliktCommand() {
             parseStaticConfigurationFile(staticFile)
         }
 
-        boardSizeLength = boardSize
+        boardSideLength = boardSize
         particles = particlesList
 
         val dynamicParsed = parseDynamicConfigurationFile(dynamicFile, particles)
@@ -68,7 +85,7 @@ class Cli : CliktCommand() {
             matrixSize = matrixSize!!,
             rc = interactionRadius,
             periodicContour = periodicContour,
-            boardSizeLength = boardSizeLength,
+            boardSizeLength = boardSideLength,
             time = time
         )
 
@@ -83,8 +100,8 @@ class Cli : CliktCommand() {
 
         val elapsedTime = endTime - startTime
 
-        logger.info { "${settings.algorithm} | ${settings.particles.size} | $elapsedTime ms" }
         logger.debug { settings.particles }
+        logger.info { "${settings.algorithm} | ${settings.particles.size} | $elapsedTime ms" }
 
         writeOutputFile(outputDirectory!!, settings)
     }
@@ -150,10 +167,18 @@ class Cli : CliktCommand() {
     }
 
     private fun writeOutputFile(outputDir: Path, settings: Settings) {
-        val fileName = "${settings.algorithm}-ts=${System.currentTimeMillis()}-particles=${settings.particles.size}-M=${settings.matrixSize}-rc=${settings.rc}-periodic=${settings.periodicContour}-L=${settings.boardSizeLength}.txt"
-        val file = outputDir.resolve(fileName).toFile()
+        val dirName =
+            "${settings.algorithm}-particles=${settings.particles.size}-M=${settings.matrixSize}-rc=${settings.rc}-periodic=${settings.periodicContour}-L=${settings.boardSizeLength}"
+        if (!File(outputDir.resolve(dirName).toAbsolutePath().toString()).exists()) {
+            File(outputDir.resolve(dirName).toAbsolutePath().toString()).mkdir()
+        }
+        val fileName =
+            //"${settings.algorithm}-ts=${System.currentTimeMillis()}-particles=${settings.particles.size}-M=${settings.matrixSize}-rc=${settings.rc}-periodic=${settings.periodicContour}-L=${settings.boardSizeLength}.txt"
+            // Version without ts, easier to pipe with python
+            "${settings.algorithm}-particles=${settings.particles.size}-M=${settings.matrixSize}-rc=${settings.rc}-periodic=${settings.periodicContour}-L=${settings.boardSizeLength}.txt"
+        val file = outputDir.resolve(dirName).resolve(fileName).toFile()
 
-        settings.particles.forEach {particle ->
+        settings.particles.forEach { particle ->
             val neighbours = particle.neighbours.joinToString(" ") { "${it.id}" }
             file.appendText("${particle.id} $neighbours\n")
         }

@@ -3,16 +3,16 @@ package ar.edu.itba.ss
 import java.io.File
 import kotlin.random.Random
 
-fun generateRandomStaticConfig(file: File): Pair<Int, List<Particle>> {
-    val nParticles = Random.nextInt(10, 101) // Límite superior es exclusivo
-    val boardSizeLength = Random.nextInt(10, 101)
+fun generateRandomStaticConfig(file: File, numberOfParticles: Int?, boardSideLength: Int?, particleRadius: Double?, interactionDistance: Double?): Pair<Int, List<Particle>> {
+    val nParticles = numberOfParticles ?: Random.nextInt(10, 101) // Límite superior es exclusivo
+    val boardSizeLength = boardSideLength ?: Random.nextInt(10, 101)
 
     file.writeText("$nParticles\n$boardSizeLength\n")
     val particles = mutableListOf<Particle>()
 
     repeat(nParticles) { id ->
-        val radius = Random.nextDouble(0.5, 2.0)
-        val property = Random.nextDouble(1.0, 10.0)
+        val radius = particleRadius ?: Random.nextDouble(0.1, 2.0)
+        val property = interactionDistance ?: Random.nextDouble(1.0, 10.0)
         file.appendText("$radius $property\n")
         particles.add(Particle(id, radius, property, 0.0, 0.0, 0.0, 0.0))
     }

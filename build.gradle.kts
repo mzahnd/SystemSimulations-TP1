@@ -1,5 +1,8 @@
+import org.codehaus.groovy.tools.groovydoc.Main
+
 plugins {
     kotlin("jvm") version "2.1.0"
+    id("application")
 }
 
 group = "ar.edu.itba.ss"
@@ -7,6 +10,10 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+}
+
+application {
+    mainClass = "ar.edu.itba.ss.MainKt"
 }
 
 dependencies {
