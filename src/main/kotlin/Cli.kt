@@ -168,14 +168,14 @@ class Cli : CliktCommand() {
 
     private fun writeOutputFile(outputDir: Path, settings: Settings) {
         val dirName =
-            "${settings.algorithm}-particles=${settings.particles.size}-M=${settings.matrixSize}-rc=${settings.rc}-periodic=${settings.periodicContour}-L=${settings.boardSizeLength}"
+            "${settings.algorithm}-particles=${settings.particles.size}-M=${settings.matrixSize}-rc=${settings.rc}-r=${particleRadius}-periodic=${settings.periodicContour}-L=${settings.boardSizeLength}"
         if (!File(outputDir.resolve(dirName).toAbsolutePath().toString()).exists()) {
             File(outputDir.resolve(dirName).toAbsolutePath().toString()).mkdir()
         }
         val fileName =
             //"${settings.algorithm}-ts=${System.currentTimeMillis()}-particles=${settings.particles.size}-M=${settings.matrixSize}-rc=${settings.rc}-periodic=${settings.periodicContour}-L=${settings.boardSizeLength}.txt"
             // Version without ts, easier to pipe with python
-            "${settings.algorithm}-particles=${settings.particles.size}-M=${settings.matrixSize}-rc=${settings.rc}-periodic=${settings.periodicContour}-L=${settings.boardSizeLength}.txt"
+            "${settings.algorithm}-particles=${settings.particles.size}-M=${settings.matrixSize}-rc=${settings.rc}-r=${particleRadius}-periodic=${settings.periodicContour}-L=${settings.boardSizeLength}.txt"
         val file = outputDir.resolve(dirName).resolve(fileName).toFile()
 
         settings.particles.forEach { particle ->
