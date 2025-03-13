@@ -1,6 +1,6 @@
-matrix_size=40
+matrix_size=20
 output_directory=./example
-number_of_particles=3000
+number_of_particles=300
 board_side_length=20
 interaction_radius=1
 particle_radius=0.25
@@ -15,7 +15,7 @@ gradle run --no-build-cache --rerun-tasks \
                   --board-side-length=${board_side_length} \
                   --interaction-radius=${interaction_radius} \
                   --particle-radius=${particle_radius} \
-                  --periodic-countour=${periodic_countour} \
+                  --periodic-contour=${periodic_countour} \
                   --generate-random \
                   --algorithm=BRUTE_FORCE"
 gradle run --no-build-cache --rerun-tasks \
@@ -25,6 +25,6 @@ gradle run --no-build-cache --rerun-tasks \
                   --board-side-length=${board_side_length} \
                   --interaction-radius=${interaction_radius} \
                   --particle-radius=${particle_radius} \
-                  --periodic-countour=${periodic_countour} \
+                  --periodic-contour=${periodic_countour} \
                   --generate-random \
                   --algorithm=CELL_INDEX_METHOD"

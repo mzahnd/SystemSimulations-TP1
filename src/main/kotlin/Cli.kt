@@ -8,9 +8,8 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.File
-import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.io.path.exists
+import kotlin.io.path.deleteIfExists
 
 class Cli : CliktCommand() {
     private val logger = KotlinLogging.logger {}
@@ -52,9 +51,14 @@ class Cli : CliktCommand() {
 
         requireNotNull(matrixSize) { IllegalArgumentException("matrix-size must be defined") }
         requireNotNull(outputDirectory) { IllegalArgumentException("output-directory must be defined") }
-
-        val staticFile = staticConfigurationFile ?: File("static_config.txt")
-        val dynamicFile = dynamicConfigurationFile ?: File("dynamic_config.txt")
+        if(staticConfigurationFile == null) {
+            Path.of("$algorithm-static_config.txt").deleteIfExists()
+        }
+        if(dynamicConfigurationFile == null) {
+            Path.of("$algorithm-dynamic_config.txt").deleteIfExists()
+        }
+        val staticFile: File  = staticConfigurationFile ?: File("$algorithm-static_config.txt")
+        val dynamicFile: File = dynamicConfigurationFile ?: File("$algorithm-dynamic_config.txt")
 
         val (boardSize, particlesList) = if (generateRandom) {
             val generatedStatic = generateRandomStaticConfig(
@@ -167,16 +171,12 @@ class Cli : CliktCommand() {
     }
 
     private fun writeOutputFile(outputDir: Path, settings: Settings) {
-        val dirName =
-            "${settings.algorithm}-particles=${settings.particles.size}-M=${settings.matrixSize}-rc=${settings.rc}-r=${particleRadius}-periodic=${settings.periodicContour}-L=${settings.boardSizeLength}"
-        if (!File(outputDir.resolve(dirName).toAbsolutePath().toString()).exists()) {
-            File(outputDir.resolve(dirName).toAbsolutePath().toString()).mkdir()
-        }
         val fileName =
             //"${settings.algorithm}-ts=${System.currentTimeMillis()}-particles=${settings.particles.size}-M=${settings.matrixSize}-rc=${settings.rc}-periodic=${settings.periodicContour}-L=${settings.boardSizeLength}.txt"
             // Version without ts, easier to pipe with python
             "${settings.algorithm}-particles=${settings.particles.size}-M=${settings.matrixSize}-rc=${settings.rc}-r=${particleRadius}-periodic=${settings.periodicContour}-L=${settings.boardSizeLength}.txt"
-        val file = outputDir.resolve(dirName).resolve(fileName).toFile()
+        outputDir.resolve(fileName).deleteIfExists()
+        val file = outputDir.resolve(fileName).toFile()
 
         settings.particles.forEach { particle ->
             val neighbours = particle.neighbours.joinToString(" ") { "${it.id}" }

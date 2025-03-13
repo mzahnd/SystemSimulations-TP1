@@ -239,7 +239,4 @@ bin/
 .DS_Store
 
 BRUTE_FORCE*
-CELL_INDEX_METHOD*
-
-static_config.txt
-dynamic_config.txt
+CELL_INDEX*
