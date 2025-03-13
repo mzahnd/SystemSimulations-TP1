@@ -240,3 +240,6 @@ bin/
 
 BRUTE_FORCE*
 CELL_INDEX*
+
+*static_config.txt
+*dynamic_config.txt

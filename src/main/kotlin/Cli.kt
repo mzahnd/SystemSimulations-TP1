@@ -32,7 +32,7 @@ class Cli : CliktCommand() {
         .help("Square side length.")
     private val particleRadius: Double? by option().double().default(0.25)
         .help("Radius of particles.")
-    private val algorithm: Algorithm by option().enum<Algorithm>().default(Algorithm.CELL_INDEX_METHOD)
+    private val algorithm: Algorithm? by option().enum<Algorithm>()
         .help("[Optional] Algorithm implementation to run. Defaults to CELL_INDEX_METHOD.")
     private val periodicContour: Boolean by option().boolean().default(false)
         .help("[Optional] Should use periodic contour. Defaults to false.")
@@ -42,24 +42,96 @@ class Cli : CliktCommand() {
         .help("Generate random static and dynamic configuration files.")
 
     override fun run() {
+        requireNotNull(matrixSize) { IllegalArgumentException("matrix-size must be defined") }
+        requireNotNull(outputDirectory) { IllegalArgumentException("output-directory must be defined") }
+
+        if (algorithm == null) {
+            runBothAlgorithms()
+        } else {
+            runSingleAlgorithm(algorithm!!)
+        }
+    }
+
+    private fun runBothAlgorithms() {
         var boardSideLength: Int? = boardSideLength
         val numberOfParticles: Int? = numberOfParticles
         val interactionRadius: Double = interactionRadius
         val particleRadius: Double? = particleRadius
         val time: Double
+
         var particles: List<Particle>
 
-        requireNotNull(matrixSize) { IllegalArgumentException("matrix-size must be defined") }
-        requireNotNull(outputDirectory) { IllegalArgumentException("output-directory must be defined") }
-        if(staticConfigurationFile == null) {
-            Path.of("$algorithm-static_config.txt").deleteIfExists()
-        }
-        if(dynamicConfigurationFile == null) {
-            Path.of("$algorithm-dynamic_config.txt").deleteIfExists()
-        }
-        val staticFile: File  = staticConfigurationFile ?: File("$algorithm-static_config.txt")
-        val dynamicFile: File = dynamicConfigurationFile ?: File("$algorithm-dynamic_config.txt")
 
+        Path.of("static_config.txt").deleteIfExists()
+        Path.of("dynamic_config.txt").deleteIfExists()
+
+        val staticFile = File("static_config.txt")
+        val dynamicFile = File("dynamic_config.txt")
+
+        val generatedStatic: Pair<Int, List<Particle>> = generateRandomStaticConfig(
+            staticFile,
+            numberOfParticles,
+            boardSideLength,
+            particleRadius,
+            interactionRadius
+        )
+        boardSideLength = generatedStatic.first
+        particles = generatedStatic.second
+
+        generateRandomDynamicConfig(dynamicFile, boardSideLength, particles)
+
+        val dynamicParsed = parseDynamicConfigurationFile(dynamicFile, particles)
+        time = dynamicParsed.first
+        particles = dynamicParsed.second
+
+        val cellIndexSettings = Settings(
+            algorithm = Algorithm.CELL_INDEX_METHOD,
+            particles = particles,
+            matrixSize = matrixSize!!,
+            rc = interactionRadius,
+            periodicContour = periodicContour,
+            boardSizeLength = boardSideLength,
+            time = time
+        )
+        val bruteForceSettings = Settings(
+            algorithm = Algorithm.BRUTE_FORCE,
+            particles = particles,
+            matrixSize = matrixSize!!,
+            rc = interactionRadius,
+            periodicContour = periodicContour,
+            boardSizeLength = boardSideLength,
+            time = time
+        )
+
+        val cellIndexStartTime = System.currentTimeMillis()
+        cellIndexMethod(cellIndexSettings)
+        val cellIndexEndTime = System.currentTimeMillis()
+        val cellIndexElapsedTime = cellIndexEndTime - cellIndexStartTime
+
+        val bruteForceStartTime = System.currentTimeMillis()
+        bruteForce(bruteForceSettings)
+        val bruteForceEndTime = System.currentTimeMillis()
+        val bruteForceElapsedTime = bruteForceEndTime - bruteForceStartTime
+
+        logger.debug { cellIndexSettings.particles }
+        logger.info { "${cellIndexSettings.algorithm} | ${cellIndexSettings.particles.size} | $cellIndexElapsedTime ms" }
+        logger.info { "${bruteForceSettings.algorithm} | ${bruteForceSettings.particles.size} | $bruteForceElapsedTime ms" }
+
+        writeOutputFile(outputDirectory!!, cellIndexSettings)
+        writeOutputFile(outputDirectory!!, bruteForceSettings)
+    }
+
+    private fun runSingleAlgorithm(algorithm: Algorithm) {
+        var boardSideLength: Int? = boardSideLength
+        val numberOfParticles: Int? = numberOfParticles
+        val interactionRadius: Double = interactionRadius
+        val particleRadius: Double? = particleRadius
+        val time: Double
+
+        val staticFile: File = staticConfigurationFile ?: File("static_config.txt")
+        val dynamicFile: File = dynamicConfigurationFile ?: File("dynamic_config.txt")
+
+        var particles: List<Particle>
         val (boardSize, particlesList) = if (generateRandom) {
             val generatedStatic = generateRandomStaticConfig(
                 staticFile,
@@ -109,7 +181,6 @@ class Cli : CliktCommand() {
 
         writeOutputFile(outputDirectory!!, settings)
     }
-
 
     private fun parseStaticConfigurationFile(configurationFile: File): Pair<Int, List<Particle>> {
         val nParticles = configurationFile.useLines { it.elementAtOrNull(0)?.trim()?.toInt() ?: 0 }
@@ -172,7 +243,7 @@ class Cli : CliktCommand() {
 
     private fun writeOutputFile(outputDir: Path, settings: Settings) {
         val fileName =
-            //"${settings.algorithm}-ts=${System.currentTimeMillis()}-particles=${settings.particles.size}-M=${settings.matrixSize}-rc=${settings.rc}-periodic=${settings.periodicContour}-L=${settings.boardSizeLength}.txt"
+        //"${settings.algorithm}-ts=${System.currentTimeMillis()}-particles=${settings.particles.size}-M=${settings.matrixSize}-rc=${settings.rc}-periodic=${settings.periodicContour}-L=${settings.boardSizeLength}.txt"
             // Version without ts, easier to pipe with python
             "${settings.algorithm}-particles=${settings.particles.size}-M=${settings.matrixSize}-rc=${settings.rc}-r=${particleRadius}-periodic=${settings.periodicContour}-L=${settings.boardSizeLength}.txt"
         outputDir.resolve(fileName).deleteIfExists()

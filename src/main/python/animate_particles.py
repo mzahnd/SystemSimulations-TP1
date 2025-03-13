@@ -124,9 +124,9 @@ def main():
                       help="Radius of interaction of the particle")
   parser.add_argument("-r", "--particle_radius", type=float,
                       help="Radius of the particle")
-  parser.add_argument("-p", "--periodic_contour", type=bool,
+  parser.add_argument("-p", "--periodic_contour", action='store_true',
                       help="Is periodic contour enabled")
-  parser.add_argument("-b", "--brute_force", type=bool,
+  parser.add_argument("-b", "--brute_force", action='store_true',
                       help="Analyse brute force output")
 
   args = parser.parse_args()
@@ -139,16 +139,15 @@ def main():
   particle_radius = args.particle_radius
   periodic_contour = "true" if args.periodic_contour else "false"
 
+  dynamic_config_file_path = "./dynamic_config.txt"
+
   input_file_name = None
-  dynamic_config_file_path = None
   output_name = None
   if args.brute_force:
     input_file_name = f"BRUTE_FORCE-particles={number_of_particles}-M={matrix_size}-rc={interaction_radius}-r={particle_radius}-periodic={periodic_contour}-L={board_side_length}.txt"
-    dynamic_config_file_path = f"./BRUTE_FORCE-dynamic_config.txt"
     output_name = "BRUTE_FORCE"
   else:
     input_file_name = f"CELL_INDEX_METHOD-particles={number_of_particles}-M={matrix_size}-rc={interaction_radius}-r={particle_radius}-periodic={periodic_contour}-L={board_side_length}.txt"
-    dynamic_config_file_path = f"./CELL_INDEX_METHOD-dynamic_config.txt"
     output_name = "CELL_INDEX"
 
   input_file_path = f"{input_directory}/{input_file_name}"
