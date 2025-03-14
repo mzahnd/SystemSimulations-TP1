@@ -5,7 +5,7 @@ particle_radius=0.25
 periodic_contour=false
 
 clear
-for ((j=20; j<=500; j=j+20)); do
+for ((j=100; j<=3100; j=j+500)); do
   for ((i=1; i<=20; i++)); do
       # Add your custom commands here
       # Example: Check if the number is even or odd
