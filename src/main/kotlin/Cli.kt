@@ -61,6 +61,7 @@ class Cli : CliktCommand() {
 
         var particles: List<Particle>
 
+        logger.info{ "Running with Matrix Size: $matrixSize and $numberOfParticles Particles" }
 
         Path.of("static_config.txt").deleteIfExists()
         Path.of("dynamic_config.txt").deleteIfExists()

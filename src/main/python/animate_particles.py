@@ -42,17 +42,18 @@ def parse_neighbors(lines):
   return neighbours
 
 
-def add_grid(matrix_size, ax):
+def add_grid(matrix_size, ax, board_side_length):
+  delta = board_side_length / matrix_size
   # Draw vertical lines at intervals of 1 unit, from 0 to M
   for x in range(0, matrix_size + 1):  # M + 1 to include the last line
-    ax.vlines(x, 0, matrix_size, colors='gray', linestyle='--', linewidth=0.2)
+    ax.vlines(x*delta, 0, board_side_length, colors='gray', linestyle='--', linewidth=0.2)
   # Draw horizontal lines at intervals of 1 unit, from 0 to M
   for y in range(0, matrix_size + 1):  # M + 1 to include the last line
-    ax.hlines(y, 0, matrix_size, colors='gray', linestyle='--', linewidth=0.2)
+    ax.hlines(y*delta, 0, board_side_length, colors='gray', linestyle='--', linewidth=0.2)
 
 
 def animate(particles: [Particle], neighbours: dict, filename: str,
-    matrix_size=None):
+    matrix_size: int | None, board_side_length: int):
   fig, ax = plt.subplots(figsize=(8, 8))
   ax.set_xlim(0, 25)
   ax.set_ylim(0, 25)
@@ -60,12 +61,16 @@ def animate(particles: [Particle], neighbours: dict, filename: str,
   def update(frame):
     ax.clear()  # Clear the previous plot
 
+    plt.title(
+      f"Interacción de Partículas: Método {"Cell Index" if matrix_size else "Brute Force"}")
+    plt.xlabel("x")
+    plt.ylabel("y")
     # Set limits and labels again after clearing
     ax.set_xlim(-1, 21)
     ax.set_ylim(-1, 21)
 
     if matrix_size:
-      add_grid(matrix_size, ax)
+      add_grid(matrix_size, ax, board_side_length)
 
     # Get the particle to focus on (i-particle)
     focused_particle = particles[frame]
@@ -163,7 +168,8 @@ def main():
                                     interaction_radius)
         cell_index_neighbours = parse_neighbors(output_lines)
         animate(particles, cell_index_neighbours, output_name,
-                matrix_size if not args.brute_force else None)
+                matrix_size if not args.brute_force else None,
+                board_side_length)
   except FileNotFoundError as e:
     print(e)
   except Exception as e:

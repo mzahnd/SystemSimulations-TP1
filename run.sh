@@ -1,6 +1,6 @@
-matrix_size=10
+matrix_size=20
 output_directory=./example
-number_of_particles=300
+number_of_particles=250
 board_side_length=20
 interaction_radius=1
 particle_radius=0.25
